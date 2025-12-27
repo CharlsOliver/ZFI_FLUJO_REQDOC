@@ -23,6 +23,8 @@ function (Controller, MessageToast, Fragment, Filter, FilterOperator, formatter,
             this.ZSERV_PPL_SHELP_SRV = this.getOwnerComponent().getModel("ZSERV_PPL_SHELP_SRV");
             this.ZSERV_PPL_PRINT_SRV = this.getOwnerComponent().getModel("ZSERV_PPL_PRINT_SRV");
             this.ZSERV_PPL_CHECKUSR_SRV = this.getOwnerComponent().getModel("ZSERV_PPL_CHECKUSR_SRV");
+            this.ZSER_PPL_SHELP_REQ_SRV = this.getOwnerComponent().getModel("ZSER_PPL_SHELP_REQ_SRV");
+            this.ZSER_PPL_DATA_REQ_SRV = this.getOwnerComponent().getModel("ZSER_PPL_DATA_REQ_SRV");
             this.oFlujos = this.getOwnerComponent().getModel("Flujos");
             this.oAprobadores = this.getOwnerComponent().getModel("Aprobadores");
             this.oSociedades = this.getOwnerComponent().getModel("Sociedades");
@@ -31,6 +33,7 @@ function (Controller, MessageToast, Fragment, Filter, FilterOperator, formatter,
             this.oAdjuntos = this.getOwnerComponent().getModel("Adjuntos");
             this.oDocumentos = this.getOwnerComponent().getModel("Documentos");
             this.oDocumentosSeleccionados = this.getOwnerComponent().getModel("DocumentosSeleccionados");
+            this.oRequisiciones = this.getOwnerComponent().getModel("Requisiciones");
             this.oRouter.getRoute("RouteMain").attachPatternMatched(this._onObjectMatched, this);
             this.oBundle = this.getOwnerComponent().getModel("i18n").getResourceBundle();
         },
@@ -49,11 +52,13 @@ function (Controller, MessageToast, Fragment, Filter, FilterOperator, formatter,
             this.cboxMoneda = this.getView().byId("cboxMoneda");
             this.inptImporte = this.getView().byId("inptImporte");
             this.rbgMetodoPago = this.getView().byId("rbgMetodoPago");
+            this.btnBuscarDocs = this.getView().byId("btnBuscarDocs");
+            this.btnBuscarDocs.setText(this.oBundle.getText("form.documentos.seleccionados", [0]))
 
             if (sap.ushell && sap.ushell.Container) {
                 this.oUser = sap.ushell.Container.getUser();
                 this.sUserId = this.oUser.getId();
-                //this.sUserId = "RREYES";
+                this.sUserId = "RREYES";
             } else {
                 this.sUserId = "RREYES";
             }
@@ -65,34 +70,10 @@ function (Controller, MessageToast, Fragment, Filter, FilterOperator, formatter,
                 MessageBox.alert('Usuario no autorizado para generar flujos. Registrese en Transacción "ZPPL_UPD_CTRLCON" e intente de nuevo.');
                 return
             } else {
-                this.onCrearRequisicion();
                 this.onCargarDropdowns();
+                this.onCargarRequisiciones();
             }
 		},
-
-        onCrearRequisicion: async function() {
-            const that = this;
-            const valid = await this._onValidateUser();
-            if(!valid){
-                MessageBox.alert('Usuario no autorizado para generar flujos. Registrese en Transacción "ZPPL_UPD_CTRLCON" e intente de nuevo.');
-                return
-            }
-            this.ZSERV_PPL_GETID_SRV.read(`/IDSet('${this.sUserId}')`, {
-				urlParameters: {
-					"format": "json"
-				},
-				success: function (response) {
-                    if(response["ReqId"] !== "" && response["ReqId"] !== null){
-                        that.inptReqId.setValue(response["ReqId"]);
-                    } else {
-                        MessageToast.show(that.oBundle.getText("requisicion.message.create.error", [that.sUserId]));
-                    }
-				},
-				error: function (error) {
-					console.log(error)
-				}
-			});
-        },
 
         onCargarDropdowns: function (){
             const that = this;
@@ -121,7 +102,22 @@ function (Controller, MessageToast, Fragment, Filter, FilterOperator, formatter,
                 that.oSociedades.setData(aAllResponse[1]["ValNav"]["results"]);
                 that.oMonedas.setData(aAllResponse[3]["ValNav"]["results"]);
             }).catch((err) => {
-            console.error("Error al consultar el OData:", err);
+                console.error("Error al consultar el OData:", err);
+            });
+        },
+
+        onCargarRequisiciones: function () {
+            const that = this;
+            this.ZSER_PPL_SHELP_REQ_SRV.read("/RequisicionSet", {
+                urlParameters: {
+                    "format": "json"
+                },
+                success: function (oData) {
+                    that.oRequisiciones.setData(oData["results"]);
+                },
+                error: function (oError) {
+                    MessageToast.show("No fue posible cargar las requisiciones creadas.");
+                }
             });
         },
 
@@ -191,9 +187,15 @@ function (Controller, MessageToast, Fragment, Filter, FilterOperator, formatter,
         },
 
         onBuscarDocumentos: function() {
-            const sociedad = this.cboxSociedad.getSelectedKey();
-            const acreedor = this.cboxAcreedor.getSelectedKey();
-            const moneda = this.cboxMoneda.getSelectedKey();
+            if(!this.oReqSelected) {
+                MessageToast.show("Seleccione una requisición.");
+                return
+            }
+
+            const sociedad = this.oReqSelected["SOCIEDAD"];
+            const acreedor = this.oReqSelected["PROVEEDOR"];
+            const moneda = this.oReqSelected["MONEDA"];
+
             if(sociedad === null || sociedad === "" || sociedad === undefined) {
                 MessageToast.show("Seleccione una sociedad.");
                 return
@@ -213,6 +215,7 @@ function (Controller, MessageToast, Fragment, Filter, FilterOperator, formatter,
                         this._oDialogDocumentos = oDialog;
                         this.getView().addDependent(oDialog);
                         oDialog.open();
+                        this.onLoadDocumentos(sociedad, formatter.formatearFechaSAP(this.oReqSelected["FECHA_DOC"]), acreedor, moneda)
                     }.bind(this));
                 } else {
                     this._oDialogDocumentos.open();
@@ -268,7 +271,12 @@ function (Controller, MessageToast, Fragment, Filter, FilterOperator, formatter,
                 aNuevosSeleccionados.push(oDoc);
             });
 
-            const currency = this.cboxMoneda.getSelectedKey();
+            if(importe > this.oReqSelected["IMPORTE"]) {
+                MessageToast.show("El importe de los documentos seleccionados excede el importe de la requisición.");
+                return;
+            }
+
+            const currency = this.oReqSelected["MONEDA"];
             const importeFormateado = new Intl.NumberFormat('es-MX', {
                 style: 'currency',
                 currency: currency
@@ -277,6 +285,7 @@ function (Controller, MessageToast, Fragment, Filter, FilterOperator, formatter,
             this.oDocumentosSeleccionados.setData(aNuevosSeleccionados);
         
             if (aNuevosSeleccionados.length > 0) {
+                this.btnBuscarDocs.setText(this.oBundle.getText("form.documentos.seleccionados", [aNuevosSeleccionados.length]))
                 MessageToast.show(this.oBundle.getText("form.documentos.seleccionados", [aNuevosSeleccionados.length]));
             } else {
                 MessageToast.show("No se seleccionó ningún documento.");
@@ -305,66 +314,21 @@ function (Controller, MessageToast, Fragment, Filter, FilterOperator, formatter,
 
         onIniciarFlujo: function() {
             const that = this;
-            const oView = this.getView()
+            const oView = this.getView();
             oView.setBusy(true);
-            const requisicion = this.inptReqId.getValue();
-            const flujo = this.cboxFlujo.getSelectedKey();
-            const sociedad = this.cboxSociedad.getSelectedKey();
-            const acreedor = this.cboxAcreedor.getSelectedKey();
-            const moneda = this.cboxMoneda.getSelectedKey();
-            const concepto = this.inptConcepto.getValue();
-            const correo = this.inptCorreo.getValue();
-            const importe = this.inptImporte.getValue().replace("$", "").replace(",", "");
+            const flujo = this.oReqSelected["ID_FLUJO"];
+            const requisicion = this.oReqSelected["REQ_ID"];
+            const sociedad = this.oReqSelected["SOCIEDAD"];
+            const acreedor = this.oReqSelected["PROVEEDOR"];
+            const moneda = this.oReqSelected["MONEDA"];
+            const fecha = this.oReqSelected["FECHA_DOC"];
+            const concepto = this.oReqSelected["CONCEPTO"];
+            const correo = this.oReqSelected["CORREO"];
+            const importe = this.oReqSelected["IMPORTE"];
             const documentos = this.oDocumentosSeleccionados.getData();
-            const adjuntos = this.oAdjuntos.getData();
-            const comentarios = this.txtAObservaciones.getValue();
-            const metodoPago = this.rbgMetodoPago.getSelectedIndex() + 1;
 
-            if (requisicion === "" || requisicion === null || requisicion === undefined) {
-                MessageToast.show("Genere un número requisicion.")
-                oView.setBusy(false);
-                return;
-            } else if
-            (flujo === "" || flujo === null || flujo === undefined) {
-                MessageToast.show("Seleccione un flujo.")
-                oView.setBusy(false);
-                return;
-            } else if
-            (sociedad === "" || sociedad === null || sociedad === undefined) {
-                MessageToast.show("Seleccione una sociedad.")
-                oView.setBusy(false);
-                return;
-            } else if
-            (acreedor === "" || acreedor === null || acreedor === undefined) {
-                MessageToast.show("Seleccione un acreedor.")
-                oView.setBusy(false);
-                oView.setBusy(false);
-                return;
-            } else if
-            (moneda === "" || moneda === null || moneda === undefined) {
-                MessageToast.show("Seleccione una moneda.")
-                oView.setBusy(false);
-                return;
-            } else if
-            (concepto === "" || concepto === null || concepto === undefined) {
-                MessageToast.show("Ingrese un concepto.")
-                oView.setBusy(false);
-                return;
-            } else if
-            (correo === "" || correo === null || correo === undefined) {
-                MessageToast.show("Ingrese un correo electrónico para tesoreria.")
-                oView.setBusy(false);
-                return;
-            } else if (importe === "" || importe === null || importe === undefined) {
-                MessageToast.show("Ingrese un importe.")
-                oView.setBusy(false);
-                return;
-            } else if (comentarios === "" || comentarios === null || comentarios === undefined) {
-                MessageToast.show("Ingrese comentarios.")
-                oView.setBusy(false);
-                return;
-            }  else if (metodoPago === "" || metodoPago === null || metodoPago === undefined) {
-                MessageToast.show("Seleccione un método de pago.")
+            if (documentos.length === 0){
+                MessageToast.show("Seleccione al menos un documento.");
                 oView.setBusy(false);
                 return;
             } else {
@@ -374,11 +338,10 @@ function (Controller, MessageToast, Fragment, Filter, FilterOperator, formatter,
                     "Sociedad" : sociedad,
                     "Proveedor" : acreedor,
                     "Moneda" : moneda,
+                    "Fecha": fecha,
                     "Concepto" : concepto,
                     "Correo" : correo,
                     "Importe": importe,
-                    "Metodop": metodoPago.toString(),
-                    "Observaciones": comentarios,
                     "HeaderDocsNav": documentos.map(documento => ({
                         Xblnr: documento.Xblnr,
                         Belnr: documento.Belnr,
@@ -389,10 +352,6 @@ function (Controller, MessageToast, Fragment, Filter, FilterOperator, formatter,
                         Wrshb: documento.Wrshb,
                         Waers: documento.Waers,
                         Gjahr: documento.Gjahr
-                    })),
-                    "HeaderFilesNav": adjuntos.map(file => ({
-                        "File_name": file.File_name,
-                        "File_cont" : file.File_cont
                     }))
                 }
 
@@ -415,12 +374,8 @@ function (Controller, MessageToast, Fragment, Filter, FilterOperator, formatter,
             }
         },
 
-        onSociedadChange: function (oEvent){
+        onLoadAcreedores: function (value){
             const that = this;
-            const oSelectedItem = oEvent.getSource().getSelectedItem().getBindingContext("Sociedades").getObject();
-            const value = oEvent.getSource().getSelectedKey();
-            this.cboxFlujo.setSelectedKey(oSelectedItem["Id_flow"]);
-            this.onFilterAprobadores(oSelectedItem["Id_flow"])
 
             const aFilter = [
                 new Filter("Campo", FilterOperator.EQ, '3'),
@@ -434,6 +389,7 @@ function (Controller, MessageToast, Fragment, Filter, FilterOperator, formatter,
                     "$expand": "VALNAV"
                 },
                 success: function (oData) {
+                    console.log(oData["results"][0]["VALNAV"]["results"])
                     that.oAcreedores.setData(oData["results"][0]["VALNAV"]["results"]);
                 },
                 error: function (oError) {
@@ -457,6 +413,7 @@ function (Controller, MessageToast, Fragment, Filter, FilterOperator, formatter,
             this.oAdjuntos.setData([]);
             this.oDocumentos.setData([]);
             this.oAprobadores.setData([]);
+            this.btnBuscarDocs.setText(this.oBundle.getText("form.documentos.seleccionados", [0]))
         },
 
         onImprimirRequisicion: function() {
@@ -506,6 +463,34 @@ function (Controller, MessageToast, Fragment, Filter, FilterOperator, formatter,
                     success: (oData) => resolve(oData.Crea === "X"),
                     error: () => resolve(false)
                 });
+            });
+        },
+
+        onRequisicionChange: function (oEvent) {
+            const that = this;
+            this.ZSER_PPL_DATA_REQ_SRV.read("/HeadSet", {
+                filters: [
+                    new Filter("REQ_ID", FilterOperator.EQ, oEvent.getSource().getSelectedKey())
+                ],
+                urlParameters: {
+                    "format": "json",
+                    "$expand": "Headnav"
+                },
+                success: function (oData) {
+                    console.log(oData)
+                    that.oReqSelected = oData["results"][0];
+                    that.cboxSociedad.setSelectedKey(oData["results"][0]["SOCIEDAD"]);
+                    that.cboxFlujo.setSelectedKey(oData["results"][0]["FLUJO_ID"]);
+                    that.inptImporte.setValue(formatter.formatearImporte(oData["results"][0]["IMPORTE"], oData["results"][0]["MONEDA"]));
+                    that.inptConcepto.setValue(oData["results"][0]["CONCEPTO"]);
+                    that.cboxAcreedor.setSelectedKey(oData["results"][0]["PROVEEDOR"]);
+                    that.inptCorreo.setValue(oData["results"][0]["CORREO"]);
+                    that.onFilterAprobadores(oData["results"][0]["FLUJO_ID"]);
+                    that.onLoadAcreedores(oData["results"][0]["SOCIEDAD"]);
+                },
+                error: function (oError) {
+                    MessageToast.show("No fue posible obtener los datos de la requisición.");
+                }
             });
         }
     });

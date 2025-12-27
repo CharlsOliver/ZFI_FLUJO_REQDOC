@@ -6,7 +6,7 @@
 	"conn_user": "RUVERA",
 	"conn_password": "Diciembre.2025",
 	"abap_package": "ZBAFAR_FIORI",
-	"abap_bsp": "ZFI_FLUJO_APROV",
-	"abap_bsp_text": "Aplicación para creación de flujos de aprobación.",
-	"abap_transport": "GWDK904567"
+	"abap_bsp": "ZFI_REQ_DOC",
+	"abap_bsp_text": "Aplicación para seleccionar documentos de requisiciones.",
+	"abap_transport": "GWDK904600"
 }

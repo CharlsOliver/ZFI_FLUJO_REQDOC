@@ -45,6 +45,20 @@ sap.ui.define([
             const day = String(oDate.getDate()).padStart(2, "0");
 
             return `${year}${month}${day}`;
-        }
+        },
+
+        formatearImporte: function(importe, moneda) {
+            if (importe === undefined || importe === null) {
+                return "";
+            }
+            const formattedImporte = parseFloat(importe).toLocaleString("es-ES", {
+                style: "currency",
+                currency: moneda,
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            return formattedImporte;
+        },
+
 	};
 });

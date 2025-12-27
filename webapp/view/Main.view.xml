@@ -6,192 +6,83 @@
     xmlns:core="sap.ui.core"
     xmlns:u="sap.ui.unified">
     <Page id="page" title="{i18n>title}">
-        <headerContent>
-            <Button icon="sap-icon://create" tooltip="{i18n>header.new}" press="onCrearRequisicion" />
-            <Button icon="sap-icon://print" tooltip="Imprimir" press="onImprimirRequisicion" />
-        </headerContent>
         <content>
             <VBox fitContainer="true">
-                <f:SimpleForm id="SimpleFormChange480_12120"
-                    editable="true"
-                    layout="ResponsiveGridLayout"
-                    title="Captura de información"
-                    labelSpanXL="4"
-                    labelSpanL="4"
-                    labelSpanM="12"
-                    labelSpanS="12"
-                    adjustLabelSpan="false"
-                    emptySpanXL="0"
-                    emptySpanL="0"
-                    emptySpanM="0"
-                    emptySpanS="0"
-                    columnsXL="3"
-                    columnsL="3"
-                    columnsM="1">
+                <f:SimpleForm id="SimpleFormChange480_12120" editable="true" layout="ResponsiveGridLayout" title="Captura de información" labelSpanXL="4" labelSpanL="4" labelSpanM="12" labelSpanS="12" adjustLabelSpan="false" emptySpanXL="0" emptySpanL="0" emptySpanM="0" emptySpanS="0" columnsXL="3" columnsL="3" columnsM="1">
                     <f:content>
                         <core:Title text="Datos de Flujo">
                         </core:Title>
                         <Label text="Requisición" />
-                        <Input id="inptReqId" value="" enabled="false"/>
+                        <ComboBox id="cboxRequisicion" items="{ path: 'Requisiciones>/' }" change="onRequisicionChange">
+                            <core:ListItem key="{Requisiciones>Reqid}" text="{Requisiciones>Reqid}"/>
+                        </ComboBox>
 
                         <Label text="Sociedad" />
-                        <ComboBox
-                            id="cboxSociedad"
-                            showSecondaryValues="true"
-                            items="{ path: 'Sociedades>/' }"
-                            change="onSociedadChange">
+                        <ComboBox id="cboxSociedad" showSecondaryValues="true" items="{ path: 'Sociedades>/' }" enabled="false">
                             <core:ListItem key="{Sociedades>Valor}" text="{Sociedades>Descripcion}" additionalText="{Sociedades>Valor}" />
                         </ComboBox>
 
                         <Label text="Flujo" />
-                        <ComboBox
-                            id="cboxFlujo"
-                            enabled="false"
-                            showSecondaryValues="true"
-                            items="{ path: 'Flujos>/' }"
-                            selectionChange="onFilterAprobadores"
-                            change="onFilterAprobadores">
+                        <ComboBox id="cboxFlujo" enabled="false" showSecondaryValues="true" items="{ path: 'Flujos>/' }" selectionChange="onFilterAprobadores" change="onFilterAprobadores">
                             <core:ListItem key="{Flujos>Valor}" text="{Flujos>Descripcion}" additionalText="{Flujos>Valor}" />
                         </ComboBox>
 
-                        <core:Title text="Datos para tesoreria" />
-                        <Label text="Correo electrónico" />
-                        <Input id="inptCorreo" value=""/>
-
-                        <core:Title text="Método de pago" />
-                        <RadioButtonGroup id="rbgMetodoPago">
-                            <RadioButton id="rbTransferencia" text="Transferencia" />
-                            <RadioButton id="rbCheque" text="Cheque" />
-                            <RadioButton id="rbChequeCert" text="Cheque certificado" />
-                        </RadioButtonGroup>
-                    </f:content>
-                </f:SimpleForm>
-
-                <f:SimpleForm id="SimpleFormChange480_12121"
-                    editable="true"
-                    layout="ResponsiveGridLayout"
-                    labelSpanXL="4"
-                    labelSpanL="3"
-                    labelSpanM="12"
-                    labelSpanS="12"
-                    adjustLabelSpan="true"
-                    emptySpanXL="0"
-                    emptySpanL="0"
-                    emptySpanM="0"
-                    emptySpanS="0"
-                    columnsXL="2"
-                    columnsL="2"
-                    columnsM="1">
-                    <f:content>
                         <core:Title text="Datos para Requisición" />
                         <Label text="Importe" />
-                        <Input id="inptImporte" value="" type="Number"/>
-
-                        <Label text="Moneda" />
-                        <ComboBox
-                            id="cboxMoneda"
-                            showSecondaryValues="true"
-                            items="{ path: 'Monedas>/' }">
-                            <core:ListItem key="{Monedas>Valor}" text="{Monedas>Descripcion}"
-                                additionalText="{Monedas>Valor}" />
-                        </ComboBox>
+                        <Input id="inptImporte" value="" enabled="false"/>
 
                         <Label text="Concepto" />
-                        <Input id="inptConcepto" value="" />
+                        <Input id="inptConcepto" value="" enabled="false"/>
 
                         <Label text="Acreedor" />
-                        <ComboBox
-                            id="cboxAcreedor"
-                            showSecondaryValues="true"
-                            items="{ path: 'Acreedores>/' }">
-                            <core:ListItem key="{Acreedores>Valor}" text="{Acreedores>Descripcion}"
-                                additionalText="{Acreedores>Valor}" />
+                        <ComboBox id="cboxAcreedor" showSecondaryValues="true" items="{ path: 'Acreedores>/' }" enabled="false">
+                            <core:ListItem key="{Acreedores>Valor}" text="{Acreedores>Descripcion}" additionalText="{Acreedores>Valor}" />
                         </ComboBox>
+                        <Label text="" />
+                        <Button
+                            id="btnBuscarDocs"
+                            icon="sap-icon://search"
+                            text="{i18n>form.documentos.seleccionados}"
+                            press="onBuscarDocumentos">
+                        </Button>
 
-                        <core:Title text="Observaciones / Justificación" />
-                        <TextArea
-                            id="txtAObservaciones"
-                            showExceededText="false"
-                            maxLength="2000"
-                            width="100%"
-                            rows="7"/>
+                        <core:Title text="Datos para tesoreria" />
+                        <Label text="Correo electrónico" />
+                        <Input id="inptCorreo" value="" enabled="false"/>
                     </f:content>
                 </f:SimpleForm>
-                <l:Grid
-                    defaultSpan="XL6 L6 M12 S12"
-                    width="100%"
-                    class="sapUiMediumMarginTop">
-                    <l:content>
-                        <Panel expandable="false" width="100%">
-                            <Table
-                                id="tblPropuestas"
-                                fixedLayout="false"
-                                sticky="ColumnHeaders"
-                                items="{Aprobadores>/}">
-                                <headerToolbar>
-                                    <OverflowToolbar>
-                                        <Title text="Aprobadores" level="H3"/>
-                                        <ToolbarSpacer/>
-                                    </OverflowToolbar>
-                                </headerToolbar>
 
-                                <columns>
-                                    <Column width="20%"><Text text="Usuario" /></Column>
-                                    <Column width="40%"><Text text="Nombre" /></Column>
-                                    <Column width="40%"><Text text="Correo electrónico" /></Column>
-                                </columns>
+                <Table id="tblPropuestas" fixedLayout="false" sticky="ColumnHeaders" items="{Aprobadores>/}">
+                    <headerToolbar>
+                        <OverflowToolbar>
+                            <Title text="Aprobadores" level="H3"/>
+                            <ToolbarSpacer/>
+                        </OverflowToolbar>
+                    </headerToolbar>
 
-                                <items>
-                                    <ColumnListItem>
-                                        <cells>
-                                            <Text text="{Aprobadores>Usuario}" />
-                                            <Text text="{Aprobadores>Ename}" />
-                                            <Text text="{Aprobadores>Email}" />
-                                        </cells>
-                                    </ColumnListItem>
-                                </items>
+                    <columns>
+                        <Column width="20%">
+                            <Text text="Usuario" />
+                        </Column>
+                        <Column width="40%">
+                            <Text text="Nombre" />
+                        </Column>
+                        <Column width="40%">
+                            <Text text="Correo electrónico" />
+                        </Column>
+                    </columns>
 
-                            </Table>
-                        </Panel>
-                    </l:content>
+                    <items>
+                        <ColumnListItem>
+                            <cells>
+                                <Text text="{Aprobadores>Usuario}" />
+                                <Text text="{Aprobadores>Ename}" />
+                                <Text text="{Aprobadores>Email}" />
+                            </cells>
+                        </ColumnListItem>
+                    </items>
 
-                    <l:content>
-                        <Panel expandable="false" width="100%">
-                            <VBox class="scrollListBox">
-                                <List
-                                    items="{Adjuntos>/}"
-                                    mode="Delete"
-                                    delete="onEliminarArchivo">
-                                    <headerToolbar>
-                                        <OverflowToolbar>
-                                            <Title text="Archivos adjuntos" level="H3"/>
-                                            <ToolbarSpacer/>
-                                            <u:FileUploader
-                                                tooltip="Seleccione un archivo para cargar."
-                                                change="onChangeArchivo" />
-                                            <Label text="" />
-                                        </OverflowToolbar>
-                                    </headerToolbar>
-                                    <CustomListItem>
-                                        <HBox>
-                                            <core:Icon
-                                                size="2rem"
-                                                src="sap-icon://attachment-photo"
-                                                class="sapUiSmallMarginBegin sapUiSmallMarginTopBottom"/>
-                                            
-                                            <VBox class="sapUiSmallMarginBegin sapUiSmallMarginTopBottom">
-                                                <Link
-                                                    text="{Adjuntos>File_name}"
-                                                    target="{Adjuntos>ProductPicUrl}"
-                                                    press="handlePress"/>
-                                            </VBox>
-                                        </HBox>
-                                    </CustomListItem>
-                                </List>
-                            </VBox>
-                        </Panel>
-                    </l:content>
-                </l:Grid>
+                </Table>
             </VBox>
         </content>
         <footer>

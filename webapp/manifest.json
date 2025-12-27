@@ -78,6 +78,24 @@
                     "localUri": "localService/ZSERV_PPL_CHECKUSR_SRV/metadata.xml",
                     "odataVersion": "2.0"
                 }
+            },
+            "ZSER_PPL_SHELP_REQ_SRV": {
+                "uri": "/sap/opu/odata/sap/ZSER_PPL_SHELP_REQ_SRV/",
+                "type": "OData",
+                "settings": {
+                    "annotations": [],
+                    "localUri": "localService/ZSER_PPL_SHELP_REQ_SRV/metadata.xml",
+                    "odataVersion": "2.0"
+                }
+            },
+            "ZSER_PPL_DATA_REQ_SRV": {
+                "uri": "/sap/opu/odata/sap/ZSER_PPL_DATA_REQ_SRV/",
+                "type": "OData",
+                "settings": {
+                    "annotations": [],
+                    "localUri": "localService/ZSER_PPL_DATA_REQ_SRV/metadata.xml",
+                    "odataVersion": "2.0"
+                }
             }
         }
     },
@@ -152,6 +170,16 @@
                 "preload": true,
                 "settings": {}
             },
+            "ZSER_PPL_SHELP_REQ_SRV": {
+                "dataSource": "ZSER_PPL_SHELP_REQ_SRV",
+                "preload": true,
+                "settings": {}
+            },
+            "ZSER_PPL_DATA_REQ_SRV": {
+                "dataSource": "ZSER_PPL_DATA_REQ_SRV",
+                "preload": true,
+                "settings": {}
+            },
             "Flujos": {
                 "type": "sap.ui.model.json.JSONModel",
                 "settings": {},
@@ -188,6 +216,11 @@
                 "preload": false
             },
             "DocumentosSeleccionados": {
+                "type": "sap.ui.model.json.JSONModel",
+                "settings": {},
+                "preload": false
+            },
+            "Requisiciones": {
                 "type": "sap.ui.model.json.JSONModel",
                 "settings": {},
                 "preload": false
