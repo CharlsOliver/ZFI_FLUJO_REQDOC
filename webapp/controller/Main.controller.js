@@ -42,7 +42,7 @@ function (Controller, MessageToast, Fragment, Filter, FilterOperator, formatter,
             this.aAprobadores = []
             this.oAdjuntos.setData([]);
             this.oDocumentosSeleccionados.setData([]);
-            this.inptReqId = this.getView().byId("inptReqId");
+            this.cboxRequisicion = this.getView().byId("cboxRequisicion");
             this.txtAObservaciones = this.getView().byId("txtAObservaciones");
             this.inptConcepto = this.getView().byId("inptConcepto");
             this.inptCorreo = this.getView().byId("inptCorreo");
@@ -316,12 +316,12 @@ function (Controller, MessageToast, Fragment, Filter, FilterOperator, formatter,
             const that = this;
             const oView = this.getView();
             oView.setBusy(true);
-            const flujo = this.oReqSelected["ID_FLUJO"];
+            const flujo = this.oReqSelected["FLUJO_ID"];
             const requisicion = this.oReqSelected["REQ_ID"];
             const sociedad = this.oReqSelected["SOCIEDAD"];
             const acreedor = this.oReqSelected["PROVEEDOR"];
             const moneda = this.oReqSelected["MONEDA"];
-            const fecha = this.oReqSelected["FECHA_DOC"];
+            const fecha = this.oReqSelected["FECHA"];
             const concepto = this.oReqSelected["CONCEPTO"];
             const correo = this.oReqSelected["CORREO"];
             const importe = this.oReqSelected["IMPORTE"];
@@ -354,21 +354,26 @@ function (Controller, MessageToast, Fragment, Filter, FilterOperator, formatter,
                         Gjahr: documento.Gjahr
                     }))
                 }
-
+                console.log({body});
                 this.ZSERV_PPL_CREAFLUJO_SRV.create("/HeaderSet", body, {
                     headers: {
                         "Content-Type": "application/json;charset=utf-8"
                     },
                     success: function (response) {
                         console.log(response)
-                        MessageToast.show("Flujo de requisición creado con exito.");
+                        MessageToast.show("Se agregaron los documentos, ya puede crear la propuesta de pago.");
                         oView.setBusy(false);
                         that.onResetFields();
                     },
                     error: function (error) {
                         console.log(error)
-                        MessageToast.show("Ocurrió un error al crear el flujo.");
                         oView.setBusy(false);
+                        try {
+                            const errorMsg = JSON.parse(error.responseText).error.message.value;
+                            MessageToast.show(errorMsg || "Ocurrió un error al crear el flujo.");
+                        } catch (e) {
+                            MessageToast.show("Ocurrió un error al crear el flujo.");
+                        }
                     }
                 });
             }
@@ -389,8 +394,10 @@ function (Controller, MessageToast, Fragment, Filter, FilterOperator, formatter,
                     "$expand": "VALNAV"
                 },
                 success: function (oData) {
-                    console.log(oData["results"][0]["VALNAV"]["results"])
-                    that.oAcreedores.setData(oData["results"][0]["VALNAV"]["results"]);
+                    const aAcreedores = oData["results"][0]["VALNAV"]["results"];
+                    const acreedor = aAcreedores.filter(item => item.Valor === that.oReqSelected["PROVEEDOR"]);
+                    that.oAcreedores.setData(acreedor);
+                    that.cboxAcreedor.setSelectedKey(that.oReqSelected["PROVEEDOR"]);
                 },
                 error: function (oError) {
                     console.log(oError)
@@ -400,13 +407,13 @@ function (Controller, MessageToast, Fragment, Filter, FilterOperator, formatter,
         },
 
         onResetFields: function() {
-            this.inptReqId.setValue(null);
+            this.cboxRequisicion.setSelectedKey();
             this.cboxFlujo.setSelectedKey(null);
             this.cboxSociedad.setSelectedKey(null);
-            this.txtAObservaciones.setValue(null);
-            this.rbgMetodoPago.setSelectedIndex(0);
+            //this.txtAObservaciones.setValue(null);
+            //this.rbgMetodoPago.setSelectedIndex(0);
             this.inptImporte.setValue(null);
-            this.cboxMoneda.setSelectedKey(null);
+            //this.cboxMoneda.setSelectedKey(null);
             this.inptConcepto.setValue(null);
             this.cboxAcreedor.setSelectedKey(null);
             this.inptCorreo.setValue(null);
@@ -417,7 +424,7 @@ function (Controller, MessageToast, Fragment, Filter, FilterOperator, formatter,
         },
 
         onImprimirRequisicion: function() {
-            const requisicion = this.inptReqId.getValue();
+            const requisicion = this.cboxRequisicion.getSelectedKey();
             const flujo = this.cboxFlujo.getSelectedKey();
             const sociedad = this.cboxSociedad.getSelectedKey();
             const acreedor = this.cboxAcreedor.getSelectedKey();
@@ -478,15 +485,14 @@ function (Controller, MessageToast, Fragment, Filter, FilterOperator, formatter,
                 },
                 success: function (oData) {
                     console.log(oData)
+                    that.onFilterAprobadores(oData["results"][0]["FLUJO_ID"]);
+                    that.onLoadAcreedores(oData["results"][0]["SOCIEDAD"]);
                     that.oReqSelected = oData["results"][0];
                     that.cboxSociedad.setSelectedKey(oData["results"][0]["SOCIEDAD"]);
                     that.cboxFlujo.setSelectedKey(oData["results"][0]["FLUJO_ID"]);
                     that.inptImporte.setValue(formatter.formatearImporte(oData["results"][0]["IMPORTE"], oData["results"][0]["MONEDA"]));
                     that.inptConcepto.setValue(oData["results"][0]["CONCEPTO"]);
-                    that.cboxAcreedor.setSelectedKey(oData["results"][0]["PROVEEDOR"]);
                     that.inptCorreo.setValue(oData["results"][0]["CORREO"]);
-                    that.onFilterAprobadores(oData["results"][0]["FLUJO_ID"]);
-                    that.onLoadAcreedores(oData["results"][0]["SOCIEDAD"]);
                 },
                 error: function (oError) {
                     MessageToast.show("No fue posible obtener los datos de la requisición.");
